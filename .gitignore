@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Output (regenerated; keep committed samples)
+output/*
+!output/.gitkeep
+!output/samples/**
+!output/samples/**/*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+*.log
+_analysis_raw.json
