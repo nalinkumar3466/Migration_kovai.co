@@ -29,3 +29,5 @@ Thumbs.db
 # Temp
 *.log
 _analysis_raw.json
+
+.env

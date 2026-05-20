@@ -9,6 +9,18 @@ from typing import Any
 
 from doc_analyzer.models import AnalysisResult, CorpusReport
 
+MIGRATION_QUESTION = "Is this document ready for migration? If not, what needs improvement?"
+
+
+def _readiness_status(ins) -> dict[str, Any]:
+    return {
+        "rating": ins.migration_readiness,
+        "score": ins.migration_score,
+        "ready_for_migration": ins.ready_for_migration,
+        "verdict": ins.migration_verdict,
+        "reasoning": ins.reasoning,
+    }
+
 
 def _serialize_result(result: AnalysisResult) -> dict[str, Any]:
     metrics = result.metrics
@@ -52,15 +64,10 @@ def _serialize_result(result: AnalysisResult) -> dict[str, Any]:
             "structural_quality": ins.structural_quality,
             "technical_complexity": ins.technical_complexity,
         },
-        "migration_readiness": {
-            "rating": ins.migration_readiness,
-            "score": ins.migration_score,
-            "ready_for_migration": ins.ready_for_migration,
-            "verdict": ins.migration_verdict,
-            "reasoning": ins.reasoning,
-        },
+        "migration_readiness": _readiness_status(ins),
         "migration_question": {
-            "question": "Is this document ready for migration? If not, what needs improvement?",
+            "question": MIGRATION_QUESTION,
+            "ready": ins.ready_for_migration,
             "answer": ins.migration_verdict,
             "improvements_needed": ins.suggestions if not ins.ready_for_migration else [],
         },
@@ -69,8 +76,22 @@ def _serialize_result(result: AnalysisResult) -> dict[str, Any]:
     }
 
 
+def _quick_answers(documents: list[dict]) -> list[dict]:
+    return [
+        {
+            "file_name": d["file_info"]["file_name"],
+            "file_type": d["file_info"]["file_type"],
+            "ready_for_migration": d["migration_readiness"]["ready_for_migration"],
+            "readiness": d["migration_readiness"]["rating"],
+            "score": d["migration_readiness"]["score"],
+            "answer": d["migration_question"]["answer"],
+        }
+        for d in documents
+    ]
+
+
 def write_json_report(report: CorpusReport, output_dir: Path) -> dict[str, Path]:
-    """Write master JSON and one JSON file per document. Returns paths written."""
+    """Write master JSON, executive summary, and per-document JSON files."""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     per_doc_dir = output_dir / "documents"
@@ -84,6 +105,17 @@ def write_json_report(report: CorpusReport, output_dir: Path) -> dict[str, Path]
             "input_directory": report.input_directory,
             "document_count": len(report.documents),
             "analysis_engine": "automated-rule-based",
+            "outputs": {
+                "full_report": "analysis_report.json",
+                "executive_summary": "executive_summary.json",
+                "per_document": "documents/<filename>.json",
+                "summary_report": "analysis_report.md",
+                "dashboard": "dashboard.html",
+            },
+        },
+        "migration_question": {
+            "question": MIGRATION_QUESTION,
+            "quick_answers": _quick_answers(documents),
         },
         "executive_summary": {
             "ready_count": report.summary.get("ready_count", 0),
@@ -96,10 +128,20 @@ def write_json_report(report: CorpusReport, output_dir: Path) -> dict[str, Path]
         "documents": documents,
     }
 
-    master_path = output_dir / "analysis_report.json"
-    master_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    executive = {
+        "generated_at": report.generated_at,
+        "migration_question": MIGRATION_QUESTION,
+        "stats": payload["executive_summary"],
+        "quick_answers": payload["migration_question"]["quick_answers"],
+        "pairs": report.pairs,
+    }
 
-    written: dict[str, Path] = {"master": master_path}
+    master_path = output_dir / "analysis_report.json"
+    exec_path = output_dir / "executive_summary.json"
+    master_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    exec_path.write_text(json.dumps(executive, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    written: dict[str, Path] = {"master": master_path, "executive": exec_path}
     for doc in documents:
         safe = re.sub(r"[^\w\-.]+", "_", doc["file_info"]["file_name"])
         path = per_doc_dir / f"{safe}.json"

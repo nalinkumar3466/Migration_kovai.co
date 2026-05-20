@@ -13,8 +13,9 @@ Automation tool that analyzes **Microsoft Word (`.docx`)** and **PDF (`.pdf`)** 
 | Document parsing | Text, headings, tables, links, images, metadata |
 | Metrics extraction | Pages, words, paragraphs, headings, averages, hierarchy issues |
 | Migration insights | Readability, clarity, consistency, structural quality, readiness score |
-| JSON output | Master report + one JSON file per document |
-| Summary report | Markdown executive summary with clear migration verdict |
+| JSON output | Master report + executive summary + one JSON per document |
+| Summary report | Markdown with quick-answers table and per-file detail |
+| HTML dashboard | Interactive UI with search, filters, and expandable cards |
 
 ---
 
@@ -67,6 +68,9 @@ pip install -r requirements.txt
 
 ```bash
 python run.py
+
+# Open interactive dashboard in browser when done
+python run.py --open-dashboard
 ```
 
 Custom paths:
@@ -82,6 +86,7 @@ python run.py --input input --output output
 | `--no-recursive` | Scan only top-level of input folder |
 | `--json-only` | JSON only, no Markdown |
 | `--md-only` | Markdown only, no JSON |
+| `--open-dashboard` | Open `dashboard.html` in browser after run |
 
 ---
 
@@ -117,12 +122,25 @@ Structured report including:
 
 Same structure as each entry in `documents[]` - one file per input document.
 
-### 3. Summary report (`output/analysis_report.md`)
+### 3. Executive summary JSON (`output/executive_summary.json`)
+
+Compact JSON with stats, quick answers, and pairs only.
+
+### 4. Summary report (`output/analysis_report.md`)
 
 Answers for each file:
 
 - **Is this document ready for migration?**
 - **What needs improvement?**
+
+### 5. Interactive dashboard (`output/dashboard.html`)
+
+Open in any web browser. Features:
+
+- Executive stats (Ready / Partial / Restructuring / Not Ready)
+- Search and filter documents
+- Expandable cards with verdict, metrics, issues, and improvements
+- DOCX vs PDF pair comparison table
 
 ---
 
@@ -145,6 +163,8 @@ Answers for each file:
 
 - `analysis_report.json`
 - `analysis_report.md`
+- `executive_summary.json`
+- `dashboard.html`
 - `documents/*.json`
 
 ---
